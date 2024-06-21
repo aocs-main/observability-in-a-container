@@ -1,0 +1,55 @@
+extensions:
+  # healthcheckv2: # 
+  #   use_v2: true
+  #   component_health:
+  #     include_permanent_errors: false
+  #     include_recoverable_errors: true
+  #     recovery_duration: 5m
+  #   http:
+  #     endpoint: "0.0.0.0:13133"
+  #     status:
+  #       enabled: true
+  #       path: "/health/status"
+  #     config:
+  #       enabled: true
+  #       path: "/health/config"
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - http://*
+            - https://*
+
+exporters:
+  otlp:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+  debug:
+    verbosity: detailed
+
+processors:
+  batch:
+
+service:
+  pipelines:
+    logs: 
+      receivers: [otlp]
+      exporters: [loki, debug]
+      processors: [batch]
+    traces:
+      receivers: [otlp]
+      exporters: [otlp]
+      processors: [batch]
+    metrics:
+      receivers: [otlp]
+      exporters: [prometheus]
+      processors: [batch]
