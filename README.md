@@ -4,6 +4,11 @@
 
 **observability-in-a-container** is a project that provides a docker-compose configuration to start a complete observability stack, including logging, distributed tracing functionalities and metrics. It aims to offer a reference technology stack with basic configurations that are ready out-of-the-box for immediate use. This project is ideal for developers, software project teams, and general users who need a quick and easy way to set up observability tools for their applications.
 
+### Sample Setup
+![image info](./assets/sample-setup.png)
+
+This sample setup demonstrates an OTEL to OTEL collection. The setup provides an intermediate collection such that traces, logs and metrics can be shared from on-premise systems to cloud for visualization. Each collector can also be used by their respective environments.
+
 ## Technology Stack
 
 - **Grafana**: For data visualization and monitoring.
