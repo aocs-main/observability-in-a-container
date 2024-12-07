@@ -1,0 +1,66 @@
+receivers:
+  # Assuming Prometheus/KSM has been setup
+  otlp/metrics:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+  otlp/logs:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4320"
+#Sample of OTEL Collector Solace for demonstration purpose. Remove if no solace setup
+  solace:
+    broker: [solace-ip-address:5672]
+    max_unacknowledged: 500
+    auth:
+      sasl_plain:
+        username: username
+        password: password
+    queue: queue://#telemetry-trace
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+
+processors:
+  memory_limiter:
+    check_interval: 1s # Time between measurements of memorry usage
+    limit_mib: 1000 # Maximum amount of memory, in MiB
+    spike_limit_mib: 500 # Maximum spike expected between the measurements of memory usage
+    
+  # batch metrics before sending to reduce API usage
+  batch:
+    send_batch_max_size: 1000
+    send_batch_size: 100
+    timeout: 10s # Time it will wait before sending the data regardless of size
+
+exporters:
+  otlp/metrics:
+    endpoint: "otel-collector-oncloud:4319"
+    tls:
+      insecure: true
+  otlp/logs:
+    endpoint: "otel-collector-oncloud:4320"
+    tls:
+      insecure: true
+  otlp/traces:
+    endpoint: "otel-collector-oncloud:4317"
+    tls:
+      insecure: true
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    metrics:
+      receivers: otlp/metrics
+      processors:
+      exporters: otlp/metrics
+    logs:
+      receivers: [otlp/logs]
+      processors:
+      exporters: [otlp/logs]
+    traces:
+      receivers: [solace]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/traces]
+

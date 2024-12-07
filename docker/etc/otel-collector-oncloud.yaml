@@ -1,0 +1,55 @@
+receivers:
+  otlp/metrics:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4319"
+  otlp/traces:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+  otlp/logs:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4320"
+
+processors:
+  memory_limiter:
+    check_interval: 1s   # Time between measurements of memory usage
+    limit_mib: 1000      # Maximum amount of memory, in MiB
+    spike_limit_mib: 500 # Maximum spike expected between the measurements of memory usage
+  # batch metrics before sending to reduce API usage
+  batch:
+    send_batch_max_size: 1000
+    send_batch_size: 100
+    timeout: 10s         # Time it will wait before sending the data regardless of size
+
+exporters:
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
+    tls:
+      insecure: true
+  tempo:
+    endpoint: "tempo:4317"
+    timeout: 30s
+    tls:
+      insecure: true
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+    retry_on_failure:
+      enabled: true
+      initial_interval: 
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp/metrics]
+      exporters: [prometheusremotewrite]
+    traces:
+      receivers: [otlp/traces]
+      processors: [memory_limiter, batch]
+      exporters: [tempo]
+    logs:
+      receivers: [otlp/logs]
+      exporters: [loki]

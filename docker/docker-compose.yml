@@ -1,21 +1,53 @@
+#--------------------------------------------
+# On-Premise OTEL Collector setup
 services:
-  otel-collector:
+  otel-collector-onprem:
     image: otel/opentelemetry-collector-contrib:latest
     command: [ "--config=/etc/otel-collector.yaml", "--feature-gates=component.UseLocalHostAsDefaultHost" ]
     volumes:
-      - ./etc/otel-collector.yaml:/etc/otel-collector.yaml
+      - ./etc/otel-collector-onprem.yaml:/etc/otel-collector.yaml
     ports:
       - "1888:1888"   # pprof extension
       - "8888:8888"   # Prometheus metrics exposed by the collector
       - "8889:8889"   # Prometheus exporter metrics
       - "13133:13133" # health_check extension
+      - "55679:55679" # zpages extension
       - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP HTTP receiver
+      - "4320:4320"   # OTLP gRPC receiver
+    depends_on:
+      - tempo
+      - prometheus
+      - loki
+    networks:
+      - onprem #to simulate network with on-premise environment
+      - otelToOtel #to simulate network with otel-collector-oncloud
+
+#--------------------------------------------
+# Cloud OTEL Collector setup
+  otel-collector-oncloud:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: [ "--config=/etc/otel-collector.yaml", "--feature-gates=component.UseLocalHostAsDefaultHost" ]
+    volumes:
+      - ./etc/otel-collector-oncloud.yaml:/etc/otel-collector.yaml
+    ports:
+      - "2888:1888"   # pprof extension
+      - "9888:8888"   # Prometheus metrics exposed by the collector
+      - "9889:8889"   # Prometheus exporter metrics
+      - "23133:13133" # health_check extension
+      - "5317:4317"   # OTLP gRPC receiver
+      - "5319:4319"   # OTLP gRPC receiver
+      - "5320:4320"   # OTLP gRPC receiver
       - "55679:55679" # zpages extension
     depends_on:
       - tempo
       - prometheus
+      - loki
+    networks:
+      - cloud #to simulate network with cloud environment
+      - otelToOtel #to simulate network with otel-collector-onprem
 
+#--------------------------------------------
+# Following are visualization containers
   tempo:
     image: grafana/tempo:latest
     command: [ "-config.file=/etc/tempo.yaml" ]
@@ -28,6 +60,8 @@ services:
       - "4317"  # otlp grpc
       - "4318"  # otlp http
       - "9411"  # zipkin
+    networks:
+      - cloud
 
   loki:
     image: grafana/loki:latest
@@ -42,6 +76,8 @@ services:
     volumes:
       - ./etc/loki.yaml:/etc/loki/loki.yaml
       - ./data/loki-data:/tmp/loki
+    networks:
+      - cloud
 
   prometheus:
     image: prom/prometheus:latest
@@ -53,6 +89,8 @@ services:
       - --enable-feature=exemplar-storage
     ports:
       - "9090:9090"
+    networks:
+      - cloud
 
   grafana:
     image: grafana/grafana:latest
@@ -70,20 +108,13 @@ services:
       - prometheus
       - tempo
       - loki
+    networks:
+      - cloud
 
-  # sample:
-  #   image: aocs-svc-frame:latest
-  #   ports:
-  #     - 5000:3000
-  #   volumes:
-  #     - ./data/logs:/app/logs
-  #   environment:
-  #     APP_NAME: sample-app
-  #     OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-  #     OTEL_SDK_DISABLED: false
-  #     OTEL_LOG_LEVEL: ALL
-  #     OTEL_TRACES_EXPORTER: otlp # none, console, jaeger and zipkin
-  #     OTEL_METRICS_EXPORTER: oltp # none, console and prometheus
-  #     OTEL_LOGS_EXPORTER: oltp # none and console
-  #   depends_on:
-  #     - otel-collector
+ networks:
+  onprem:
+    driver: bridge
+  cloud:
+    driver: bridge
+  otelToOtel:
+    driver: bridge
