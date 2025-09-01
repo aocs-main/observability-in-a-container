@@ -1,16 +1,8 @@
 receivers:
-  otlp/metrics:
+  otlp:
     protocols:
-      grpc:
-        endpoint: "0.0.0.0:4319"
-  otlp/traces:
-    protocols:
-      grpc:
+      http:
         endpoint: "0.0.0.0:4317"
-  otlp/logs:
-    protocols:
-      grpc:
-        endpoint: "0.0.0.0:4320"
 
 processors:
   memory_limiter:
@@ -28,28 +20,27 @@ exporters:
     endpoint: "http://prometheus:9090/api/v1/write"
     tls:
       insecure: true
-  tempo:
-    endpoint: "tempo:4317"
-    timeout: 30s
+  otlp/tempo:
+    endpoint: "tempo:4321"
     tls:
       insecure: true
-  loki:
-    endpoint: "http://loki:3100/loki/api/v1/push"
-    retry_on_failure:
-      enabled: true
-      initial_interval: 
+  otlphttp:
+    endpoint: "http://loki:3100/otlp"
+    tls:
+      insecure: true
   debug:
     verbosity: detailed
 
 service:
   pipelines:
     metrics:
-      receivers: [otlp/metrics]
+      receivers: [otlp]
       exporters: [prometheusremotewrite]
     traces:
-      receivers: [otlp/traces]
+      receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [tempo]
+      exporters: [otlp/tempo]
     logs:
-      receivers: [otlp/logs]
-      exporters: [loki]
+      receivers: [otlp]
+      processors: [memory_limiter, batch, transform]
+      exporters: [otlphttp]

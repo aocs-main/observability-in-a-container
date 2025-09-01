@@ -35,6 +35,4 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 # App
-docker/data/tempo-data/
-docker/data/loki-data/
-docker/data/logs/
+docker/data
