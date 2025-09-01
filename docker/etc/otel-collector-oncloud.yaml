@@ -42,5 +42,5 @@ service:
       exporters: [otlp/tempo]
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, batch, transform]
+      processors: [memory_limiter, batch]
       exporters: [otlphttp]
