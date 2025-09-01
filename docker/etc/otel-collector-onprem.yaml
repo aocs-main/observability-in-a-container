@@ -1,13 +1,9 @@
 receivers:
   # Assuming Prometheus/KSM has been setup
-  otlp/metrics:
+  otlp:
     protocols:
-      grpc:
-        endpoint: "0.0.0.0:4317"
-  otlp/logs:
-    protocols:
-      grpc:
-        endpoint: "0.0.0.0:4320"
+      http:
+        endpoint: "0.0.0.0:4318"
 #Sample of OTEL Collector Solace for demonstration purpose. Remove if no solace setup
   solace:
     broker: [solace-ip-address:5672]
@@ -34,33 +30,27 @@ processors:
     timeout: 10s # Time it will wait before sending the data regardless of size
 
 exporters:
-  otlp/metrics:
-    endpoint: "otel-collector-oncloud:4319"
-    tls:
-      insecure: true
-  otlp/logs:
-    endpoint: "otel-collector-oncloud:4320"
-    tls:
-      insecure: true
-  otlp/traces:
-    endpoint: "otel-collector-oncloud:4317"
-    tls:
-      insecure: true
+  otlphttp/metrics:
+    endpoint: "http://otel-collector-oncloud:4317"
+  otlphttp/logs:
+    endpoint: "http://otel-collector-oncloud:4317"
+  otlphttp/traces:
+    endpoint: "http://otel-collector-oncloud:4317"
   debug:
     verbosity: detailed
 
 service:
   pipelines:
     metrics:
-      receivers: otlp/metrics
+      receivers: [otlp]
       processors:
-      exporters: otlp/metrics
+      exporters: [otlphttp/metrics]
     logs:
-      receivers: [otlp/logs]
-      processors:
-      exporters: [otlp/logs]
-    traces:
-      receivers: [solace]
+      receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp/traces]
+      exporters: [otlphttp/logs]
+    traces:
+      receivers: [solace,otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/traces]
 
